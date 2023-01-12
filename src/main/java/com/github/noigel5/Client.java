@@ -2,24 +2,39 @@ package com.github.noigel5;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Scanner;
 
 public class Client {
     public static void main(String[] args) {
-        final Socket clientSocket;
         final BufferedReader in;
         final PrintWriter out;
 
         try {
-            clientSocket = new Socket("127.0.0.1", 5000); // TODO: parametrisieren
-            OutputStream outputStream = clientSocket.getOutputStream();
-            out = new PrintWriter(outputStream);
+            final Socket clientSocket = new Socket("127.0.0.1", 5000);
+            out = new PrintWriter(clientSocket.getOutputStream());
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-            Thread sender = new Thread(new Writer(out));
+            // Ich schreibe die nachrichen von der commandline an den server
+            Thread sender = new Thread(() -> {
+                final Scanner scanner = new Scanner(System.in);
+                while (scanner.hasNext()) {
+                    out.println(scanner.nextLine());
+                    out.flush();
+                }
+            });
             sender.start();
 
-
-            Thread receive = new Thread(new Receiver(clientSocket, in, out));
+            // und ich höre darauf, was der server mit schickt und drucke es auf der commandline aus
+            Thread receive = new Thread(() -> {
+                try {
+                    while (true) {
+                        String msg = in.readLine();
+                        System.out.println("Server: " + msg);
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
             receive.start();
 
 
@@ -28,3 +43,4 @@ public class Client {
         }
     }
 }
+
