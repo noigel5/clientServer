@@ -10,7 +10,7 @@ public class Client {
         final PrintWriter out;
 
         try {
-            final Socket clientSocket = new Socket("127.0.0.1", 5000);
+            final Socket clientSocket = new Socket(args[0], 5000);
             out = new PrintWriter(clientSocket.getOutputStream());
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
@@ -29,7 +29,7 @@ public class Client {
                 try {
                     while (true) {
                         String msg = in.readLine();
-                        System.out.println("Server: " + msg);
+                        System.out.println(msg);
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
