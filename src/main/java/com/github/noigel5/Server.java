@@ -11,7 +11,7 @@ import java.util.*;
 import static java.lang.Integer.parseInt;
 
 public class Server {
-    class Client {
+    static class Client {
         Socket socket;
         String name;
 
@@ -59,7 +59,6 @@ public class Server {
 
         final Socket clientSocket;
         String input;
-        String finalMsg;
 
         ClientSocketHandler(Socket clientSocket) {
             this.clientSocket = clientSocket;
@@ -70,66 +69,42 @@ public class Server {
             while (true) {
                 try {
                     input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream())).readLine();
-                    String[] msg = input.split(" ");
+                    String[] msg = input.split(" ", 3);
                     switch (msg[0]) {
                         case "/clients" -> {
                             for (Client client : clients.values()) {
                                 PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
                                 if (client.socket.hashCode() == clientSocket.hashCode()) {
-                                    printWriter.println(client.socket.hashCode() + "(" + client.name + "): YOU");
+                                    printWriter.printf("%d(%s):(YOU)%n", client.socket.hashCode(), client.name);
                                 } else {
-                                    printWriter.println(client.socket.hashCode() + "(" + client.name + ")");
+                                    printWriter.printf("%d(%s)%n", client.socket.hashCode(), client.name);
                                 }
                                 printWriter.flush();
                             }
                         }
                         case "/msg" -> {
-                            finalMsg = null;
-                            for (int i = 2; i < msg.length; i++) {
-                                if (finalMsg == null) {
-                                    finalMsg = msg[2];
-                                } else {
-                                    finalMsg = "%s %s".formatted(finalMsg, msg[i]);
-                                }
-                            }
-                            System.out.println(clientSocket.hashCode() + " to " + msg[1] + ": " + finalMsg);
-                            Client recepient = clients.get(parseInt(msg[1]));
+                            System.out.printf("%d to %s: %s%n", clientSocket.hashCode(), msg[1], msg[2]);
                             Client sender = clients.get(clientSocket.hashCode());
-                            PrintWriter printWriter = new PrintWriter(recepient.socket.getOutputStream());
-                            printWriter.println(clientSocket.hashCode() + "(" + sender.name + "): " + finalMsg);
+                            PrintWriter printWriter = new PrintWriter(clients.get(parseInt(msg[1])).socket.getOutputStream());
+                            printWriter.printf("%d(%s): %s%n", clientSocket.hashCode(), sender.name, msg[2]);
                             printWriter.flush();
                         }
                         case "/all" -> {
-                            finalMsg = null;
-                            for (int i = 1; i < msg.length; i++) {
-                                if (finalMsg == null) {
-                                    finalMsg = msg[1];
-                                } else {
-                                    finalMsg = "%s %s".formatted(finalMsg, msg[i]);
-                                }
-                            }
-                            System.out.println(clientSocket.hashCode() + " to all: " + finalMsg);
+                            System.out.printf("%d to all: %s%n", clientSocket.hashCode(), msg[1]);
                             for (Client client : clients.values()) {
                                 if (client.socket.hashCode() != clientSocket.hashCode()) {
                                     PrintWriter printWriter = new PrintWriter(client.socket.getOutputStream());
-                                    printWriter.println(clientSocket.hashCode() + "(" + client.name + "): " + finalMsg);
+                                    printWriter.printf("%d(%s): %s%n", clientSocket.hashCode(), client.name, msg[1]);
                                     printWriter.flush();
                                 }
                             }
                         }
                         case "/name" -> {
-                            finalMsg = null;
-                            for (int i = 1; i < msg.length; i++) {
-                                if (finalMsg == null) {
-                                    finalMsg = msg[1];
-                                } else {
-                                    finalMsg = "%s %s".formatted(finalMsg, msg[i]);
-                                }
-                            }
-                            System.out.println(clientSocket.hashCode() + " set name: " + finalMsg);
-                            int hash = clientSocket.hashCode();
-                            Client c = clients.get(hash);
-                            c.name = finalMsg;
+                            System.out.printf("%d set name to:(%s%n)", clientSocket.hashCode(), msg[1]);
+                            clients.get(clientSocket.hashCode()).name = msg[1];
+                            PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
+                            printWriter.printf("name set to:(%s)%n", msg[1]);
+                            printWriter.flush();
                         }
                         default -> {
                             PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
