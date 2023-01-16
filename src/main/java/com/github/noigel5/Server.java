@@ -71,67 +71,78 @@ public class Server {
                 try {
                     input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream())).readLine();
                     String[] msg = input.split(" ");
-                    if (input.equals("/clients")) {
-                        for (Client client : clients.values()) {
-                            PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
-                            if (client.socket.hashCode() == clientSocket.hashCode()) {
-                                printWriter.println(client.socket.hashCode() + "(" + client.name + "): YOU");
-                            } else {
-                                printWriter.println(client.socket.hashCode() + "(" + client.name + ")");
-                            }
-                            printWriter.flush();
-                        }
-                    } else if (msg[0].equals("/msg")) {
-                        finalMsg = null;
-                        for (int i = 2; i < msg.length; i++) {
-                            if (finalMsg == null) {
-                                finalMsg = msg[2];
-                            } else {
-                                finalMsg = "%s %s".formatted(finalMsg, msg[i]);
-                            }
-                        }
-                        System.out.println(clientSocket.hashCode() + " to " + msg[1] + ": " + finalMsg);
-                        Client recepient = clients.get(parseInt(msg[1]));
-                        Client sender = clients.get(clientSocket.hashCode());
-                        PrintWriter printWriter = new PrintWriter(recepient.socket.getOutputStream());
-                        printWriter.println(clientSocket.hashCode() + "(" + sender.name + "): " + finalMsg);
-                        printWriter.flush();
-                    } else if (msg[0].equals("/all")) {
-                        finalMsg = null;
-                        for (int i = 1; i < msg.length; i++) {
-                            if (finalMsg == null) {
-                                finalMsg = msg[1];
-                            } else {
-                                finalMsg = "%s %s".formatted(finalMsg, msg[i]);
-                            }
-                        }
-                        System.out.println(clientSocket.hashCode() + " to all: " + finalMsg);
-                        for (Client client : clients.values()) {
-                            if (client.socket.hashCode() != clientSocket.hashCode()) {
-                                PrintWriter printWriter = new PrintWriter(client.socket.getOutputStream());
-                                printWriter.println(clientSocket.hashCode() + "(" + client.name + "): " + finalMsg);
+                    switch (msg[0]) {
+                        case "/clients" -> {
+                            for (Client client : clients.values()) {
+                                PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
+                                if (client.socket.hashCode() == clientSocket.hashCode()) {
+                                    printWriter.println(client.socket.hashCode() + "(" + client.name + "): YOU");
+                                } else {
+                                    printWriter.println(client.socket.hashCode() + "(" + client.name + ")");
+                                }
                                 printWriter.flush();
                             }
                         }
-                    } else if (msg[0].equals("/name")) {
-                        finalMsg = null;
-                        for (int i = 1; i < msg.length; i++) {
-                            if (finalMsg == null) {
-                                finalMsg = msg[1];
-                            } else {
-                                finalMsg = "%s %s".formatted(finalMsg, msg[i]);
+                        case "/msg" -> {
+                            finalMsg = null;
+                            for (int i = 2; i < msg.length; i++) {
+                                if (finalMsg == null) {
+                                    finalMsg = msg[2];
+                                } else {
+                                    finalMsg = "%s %s".formatted(finalMsg, msg[i]);
+                                }
+                            }
+                            System.out.println(clientSocket.hashCode() + " to " + msg[1] + ": " + finalMsg);
+                            Client recepient = clients.get(parseInt(msg[1]));
+                            Client sender = clients.get(clientSocket.hashCode());
+                            PrintWriter printWriter = new PrintWriter(recepient.socket.getOutputStream());
+                            printWriter.println(clientSocket.hashCode() + "(" + sender.name + "): " + finalMsg);
+                            printWriter.flush();
+                        }
+                        case "/all" -> {
+                            finalMsg = null;
+                            for (int i = 1; i < msg.length; i++) {
+                                if (finalMsg == null) {
+                                    finalMsg = msg[1];
+                                } else {
+                                    finalMsg = "%s %s".formatted(finalMsg, msg[i]);
+                                }
+                            }
+                            System.out.println(clientSocket.hashCode() + " to all: " + finalMsg);
+                            for (Client client : clients.values()) {
+                                if (client.socket.hashCode() != clientSocket.hashCode()) {
+                                    PrintWriter printWriter = new PrintWriter(client.socket.getOutputStream());
+                                    printWriter.println(clientSocket.hashCode() + "(" + client.name + "): " + finalMsg);
+                                    printWriter.flush();
+                                }
                             }
                         }
-                        System.out.println(clientSocket.hashCode() + " set name: " + finalMsg);
-                        int hash = clientSocket.hashCode();
-                        Client c = clients.get(hash);
-                        c.name = finalMsg;
-                    } else {
-                        PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
-                        printWriter.println("ERROR: choose a command");
-                        printWriter.flush();
+                        case "/name" -> {
+                            finalMsg = null;
+                            for (int i = 1; i < msg.length; i++) {
+                                if (finalMsg == null) {
+                                    finalMsg = msg[1];
+                                } else {
+                                    finalMsg = "%s %s".formatted(finalMsg, msg[i]);
+                                }
+                            }
+                            System.out.println(clientSocket.hashCode() + " set name: " + finalMsg);
+                            int hash = clientSocket.hashCode();
+                            Client c = clients.get(hash);
+                            c.name = finalMsg;
+                        }
+                        default -> {
+                            PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
+                            printWriter.println("ERROR: choose a command");
+                            printWriter.flush();
+                        }
                     }
                 } catch (IOException e) {
+                    int clientId = this.clientSocket.hashCode();
+                    clients.remove(clientId);
+                    System.out.println("client " + clientId + " disconnected.");
+                    return;
+                } catch (Exception e) {
                     System.out.println(e.getMessage());
                     System.out.println(Arrays.toString(e.getStackTrace()));
                 }
