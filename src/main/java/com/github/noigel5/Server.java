@@ -32,19 +32,21 @@ public class Server {
 
         try {
             serverSocket = new ServerSocket(5000);
-            while (true) {
-                try {
-                    Socket clientSocket = serverSocket.accept();
-                    System.out.println("client " + clientSocket.hashCode() + " connected");
-                    clients.put(clientSocket.hashCode(), new Client(clientSocket));
-                    new Thread(new ClientSocketHandler(clientSocket)).start();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        while (true) {
+            try {
+                Socket clientSocket = serverSocket.accept();
+                System.out.println("client " + clientSocket.hashCode() + " connected");
+                clients.put(clientSocket.hashCode(), new Client(clientSocket));
+                new Thread(new ClientSocketHandler(clientSocket)).start();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
 
         // hören und bei Nachricht broadcasten
         //wenn ClientConnection eine Nachricht empfangen hat
@@ -65,24 +67,20 @@ public class Server {
 
         @Override
         public void run() {
-            try {
-                while (true) {
+            while (true) {
+                try {
                     input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream())).readLine();
                     String[] msg = input.split(" ");
                     if (input.equals("/clients")) {
-                        clients.values().forEach(client -> {
-                            try {
-                                PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
-                                if (client.socket.hashCode() == clientSocket.hashCode()) {
-                                    printWriter.println(client.socket.hashCode() + "(" + client.name + "): YOU");
-                                } else {
-                                    printWriter.println(client.socket.hashCode() + "(" + client.name + ")");
-                                }
-                                printWriter.flush();
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
+                        for (Client client : clients.values()) {
+                            PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
+                            if (client.socket.hashCode() == clientSocket.hashCode()) {
+                                printWriter.println(client.socket.hashCode() + "(" + client.name + "): YOU");
+                            } else {
+                                printWriter.println(client.socket.hashCode() + "(" + client.name + ")");
                             }
-                        });
+                            printWriter.flush();
+                        }
                     } else if (msg[0].equals("/msg")) {
                         finalMsg = null;
                         for (int i = 2; i < msg.length; i++) {
@@ -93,15 +91,11 @@ public class Server {
                             }
                         }
                         System.out.println(clientSocket.hashCode() + " to " + msg[1] + ": " + finalMsg);
-                        try {
-                            Client recepient = clients.get(parseInt(msg[1]));
-                            Client sender = clients.get(clientSocket.hashCode());
-                            PrintWriter printWriter = new PrintWriter(recepient.socket.getOutputStream());
-                            printWriter.println(clientSocket.hashCode() + "(" + sender.name + "): " + finalMsg);
-                            printWriter.flush();
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
+                        Client recepient = clients.get(parseInt(msg[1]));
+                        Client sender = clients.get(clientSocket.hashCode());
+                        PrintWriter printWriter = new PrintWriter(recepient.socket.getOutputStream());
+                        printWriter.println(clientSocket.hashCode() + "(" + sender.name + "): " + finalMsg);
+                        printWriter.flush();
                     } else if (msg[0].equals("/all")) {
                         finalMsg = null;
                         for (int i = 1; i < msg.length; i++) {
@@ -112,17 +106,13 @@ public class Server {
                             }
                         }
                         System.out.println(clientSocket.hashCode() + " to all: " + finalMsg);
-                        clients.values().forEach(client -> {
-                            try {
-                                if (client.socket.hashCode() != clientSocket.hashCode()) {
-                                    PrintWriter printWriter = new PrintWriter(client.socket.getOutputStream());
-                                    printWriter.println(clientSocket.hashCode() + "(" + client.name + "): " + finalMsg);
-                                    printWriter.flush();
-                                }
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
+                        for (Client client : clients.values()) {
+                            if (client.socket.hashCode() != clientSocket.hashCode()) {
+                                PrintWriter printWriter = new PrintWriter(client.socket.getOutputStream());
+                                printWriter.println(clientSocket.hashCode() + "(" + client.name + "): " + finalMsg);
+                                printWriter.flush();
                             }
-                        });
+                        }
                     } else if (msg[0].equals("/name")) {
                         finalMsg = null;
                         for (int i = 1; i < msg.length; i++) {
@@ -141,9 +131,10 @@ public class Server {
                         printWriter.println("ERROR: choose a command");
                         printWriter.flush();
                     }
+                } catch (IOException e) {
+                    System.out.println(e.getMessage());
+                    System.out.println(Arrays.toString(e.getStackTrace()));
                 }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             }
         }
     }
