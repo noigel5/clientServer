@@ -93,10 +93,11 @@ public class Server {
                             }
                         }
                         System.out.println(clientSocket.hashCode() + " to " + msg[1] + ": " + finalMsg);
-                        Client recepient = clients.get(parseInt(msg[1]));
                         try {
+                            Client recepient = clients.get(parseInt(msg[1]));
+                            Client sender = clients.get(clientSocket.hashCode());
                             PrintWriter printWriter = new PrintWriter(recepient.socket.getOutputStream());
-                            printWriter.println(clientSocket.hashCode() + "(" + recepient.name + "): " + finalMsg);
+                            printWriter.println(clientSocket.hashCode() + "(" + sender.name + "): " + finalMsg);
                             printWriter.flush();
                         } catch (IOException e) {
                             throw new RuntimeException(e);
