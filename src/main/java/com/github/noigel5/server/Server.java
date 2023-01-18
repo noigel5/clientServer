@@ -3,11 +3,11 @@ package com.github.noigel5.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.*;
+import java.util.HashMap;
 
 public class Server {
     ServerSocket serverSocket;
-    HashMap<Integer, Client> clients = new HashMap<>();
+    HashMap<Integer, ClientRef> clients = new HashMap<>();
 
     public static void main(String[] args) {
         new Server().doSomething();
@@ -26,7 +26,7 @@ public class Server {
             try {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("client " + clientSocket.hashCode() + " connected");
-                clients.put(clientSocket.hashCode(), new Client(clientSocket));
+                clients.put(clientSocket.hashCode(), new ClientRef(clientSocket));
                 new Thread(new ClientSocketHandler(this, clientSocket)).start();
             } catch (IOException e) {
                 throw new RuntimeException(e);

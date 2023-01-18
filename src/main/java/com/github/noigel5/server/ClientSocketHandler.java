@@ -1,6 +1,6 @@
 package com.github.noigel5.server;
 
-import com.github.noigel5.dto.Envelope;
+import com.github.noigel5.model.Envelope;
 import com.google.gson.Gson;
 
 import java.io.BufferedReader;
@@ -9,8 +9,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Arrays;
-
-import static java.lang.Integer.parseInt;
 
 class ClientSocketHandler implements Runnable {
 
@@ -30,34 +28,53 @@ class ClientSocketHandler implements Runnable {
             try {
                 input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream())).readLine();
                 Envelope envelope = GSON.fromJson(input, Envelope.class);
+
+                // set who sent this envelope...
+                envelope.setSenderHashCode(clientSocket.hashCode());
+
                 switch (envelope.getCommand()) {
                     case "/clients" -> {
-                        for (Client ignored : server.clients.values()) {
-                            PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
-                            printWriter.println(envelope);
-                            printWriter.flush();
-                        }
+                        PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
+
+                        // V1
+                        Envelope v1Envelope = new Envelope();
+                        v1Envelope.setCommand("/msg");
+                        v1Envelope.setSenderHashCode(0);
+                        v1Envelope.setSenderName("Server");
+                        v1Envelope.setRecipientHashCode(envelope.getSenderHashCode());
+                        v1Envelope.setText(getClientsResponseText());
+                        printWriter.println(GSON.toJson(v1Envelope));
+                        printWriter.flush();
                     }
                     case "/msg" -> {
-                        System.out.printf("%d to %s: %s%n", clientSocket.hashCode(), envelope.getHashCode(), envelope.getText());
-                        PrintWriter printWriter = new PrintWriter(server.clients.get(envelope.getHashCode()).socket.getOutputStream());
-                        printWriter.printf(GSON.toJson(envelope));
+                        envelope.setSenderName(this.server.clients.get(clientSocket.hashCode()).name);
+                        System.out.printf("%d to %s: %s%n", clientSocket.hashCode(), envelope.getRecipientHashCode(), envelope.getText());
+                        PrintWriter printWriter = new PrintWriter(server.clients.get(envelope.getRecipientHashCode()).socket.getOutputStream());
+                        printWriter.println(GSON.toJson(envelope));
                         printWriter.flush();
                     }
                     case "/all" -> {
+                        envelope.setSenderName(this.server.clients.get(clientSocket.hashCode()).name);
                         System.out.printf("%d to all: %s%n", clientSocket.hashCode(), envelope.getText());
-                        for (Client client : server.clients.values()) {
-                            if (client.socket.hashCode() != clientSocket.hashCode()) {
-                                PrintWriter printWriter = new PrintWriter(client.socket.getOutputStream());
-                                printWriter.printf(GSON.toJson(envelope));
+                        for (ClientRef clientRef : server.clients.values()) {
+                            if (clientRef.socket.hashCode() != clientSocket.hashCode()) {
+                                PrintWriter printWriter = new PrintWriter(clientRef.socket.getOutputStream());
+                                printWriter.println(GSON.toJson(envelope));
                                 printWriter.flush();
                             }
                         }
                     }
                     case "/name" -> {
-                        System.out.printf("%d set name to:(%s)%n", clientSocket.hashCode(), envelope.getName());
+                        System.out.printf("%d set name to:(%s)%n", clientSocket.hashCode(), envelope.getSenderName());
+                        server.clients.get(this.clientSocket.hashCode()).name = envelope.getSenderName();
                         PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
-                        printWriter.printf(GSON.toJson(envelope));
+                        Envelope response = new Envelope();
+                        response.setSenderHashCode(0);
+                        response.setCommand("/msg");
+                        response.setRecipientHashCode(clientSocket.hashCode());
+                        response.setSenderName("Server");
+                        response.setText("Name change received. You are now: " + envelope.getSenderName());
+                        printWriter.println(GSON.toJson(response));
                         printWriter.flush();
                     }
                 }
@@ -71,5 +88,37 @@ class ClientSocketHandler implements Runnable {
                 System.out.println(Arrays.toString(e.getStackTrace()));
             }
         }
+    }
+
+    private String getClientsResponseText() {
+//        return "Clients:"
+//                + System.lineSeparator()
+//                + server.clients.values()
+//                .stream()
+//                .map(clt -> String.format("- %s (%s) %s",
+//                        clt.socket.hashCode(),
+//                        clt.name,
+//                        clt.socket.hashCode() == clientSocket.hashCode() ? "<YOU>" : ""))
+//                .collect(Collectors.joining("\n"));
+
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("Clients:")
+                .append(System.lineSeparator());
+
+        for (ClientRef clt : server.clients.values()) {
+            sb.append("- ");
+            sb.append(clt.socket.hashCode());
+            sb.append(" (");
+            sb.append(clt.name);
+            sb.append(") ");
+            if (clt.socket.hashCode() == clientSocket.hashCode()) {
+                sb.append(" <YOU>");
+            }
+            sb.append(System.lineSeparator());
+        }
+
+        return sb.toString();
     }
 }

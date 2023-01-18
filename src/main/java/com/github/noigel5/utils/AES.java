@@ -1,4 +1,4 @@
-package com.github.noigel5.client;
+package com.github.noigel5.utils;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
