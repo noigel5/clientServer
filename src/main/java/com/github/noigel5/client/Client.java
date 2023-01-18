@@ -77,7 +77,7 @@ public class Client {
                     try {
                         String msg = in.readLine();
 
-                        System.out.println("                                                             DBG: " + msg);
+//                        System.out.println("                                                             DBG: " + msg);
 
                         Envelope envelope = GSON.fromJson(msg, Envelope.class);
 
