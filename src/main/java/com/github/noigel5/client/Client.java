@@ -19,16 +19,21 @@ public class Client {
             throw new IllegalArgumentException("First argument required as server host address");
         }
 
-        password = args.length >= 2 ? args[1] : null;
+        String port = args.length >= 2 ? args[1] : null;
+        if (port == null || "".equals(port)) {
+            throw new IllegalArgumentException("Second argument required a port");
+        }
+
+        password = args.length >= 3 ? args[2] : null;
         if (password == null || "".equals(password)) {
-            throw new IllegalArgumentException("Second argument required as encryption password");
+            throw new IllegalArgumentException("third argument required as encryption password");
         }
 
         final BufferedReader in;
         final PrintWriter out;
 
         try {
-            final Socket clientSocket = new Socket(serverHost, 5000);
+            final Socket clientSocket = new Socket(serverHost, Integer.parseInt(port));
             out = new PrintWriter(clientSocket.getOutputStream());
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 

@@ -10,14 +10,15 @@ public class Server {
     HashMap<Integer, ClientRef> clients = new HashMap<>();
 
     public static void main(String[] args) {
-        new Server().doSomething();
+        String port = args[0];
+        new Server().doSomething(port);
     }
 
-    public void doSomething() {
+    public void doSomething(String port) {
 //        Scanner scanner = new Scanner(System.in);
 
         try {
-            serverSocket = new ServerSocket(5000);
+            serverSocket = new ServerSocket(Integer.parseInt(port));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
