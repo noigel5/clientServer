@@ -2,14 +2,15 @@ package com.github.noigel5.server;
 
 import com.github.noigel5.model.Envelope;
 import com.google.gson.Gson;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Arrays;
 
+@Slf4j
 class ClientSocketHandler implements Runnable {
 
     public static final Gson GSON = new Gson();
@@ -27,8 +28,9 @@ class ClientSocketHandler implements Runnable {
         while (true) {
             try {
                 input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream())).readLine();
-                Envelope envelope = GSON.fromJson(input, Envelope.class);
+                log.debug("client initialized");
 
+                Envelope envelope = GSON.fromJson(input, Envelope.class);
                 // set who sent this envelope...
                 envelope.setSenderHashCode(clientSocket.hashCode());
 
@@ -48,14 +50,14 @@ class ClientSocketHandler implements Runnable {
                     }
                     case "/msg" -> {
                         envelope.setSenderName(this.server.clients.get(clientSocket.hashCode()).name);
-                        System.out.printf("%d to %s: %s%n", clientSocket.hashCode(), envelope.getRecipientHashCode(), envelope.getText());
+                        logInfo(String.format("%d to %s: %s%n", clientSocket.hashCode(), envelope.getRecipientHashCode(), envelope.getText()));
                         PrintWriter printWriter = new PrintWriter(server.clients.get(envelope.getRecipientHashCode()).socket.getOutputStream());
                         printWriter.println(GSON.toJson(envelope));
                         printWriter.flush();
                     }
                     case "/all" -> {
                         envelope.setSenderName(this.server.clients.get(clientSocket.hashCode()).name);
-                        System.out.printf("%d to all: %s%n", clientSocket.hashCode(), envelope.getText());
+                        logInfo(String.format("%d to all: %s%n", clientSocket.hashCode(), envelope.getText()));
                         for (ClientRef clientRef : server.clients.values()) {
                             if (clientRef.socket.hashCode() != clientSocket.hashCode()) {
                                 PrintWriter printWriter = new PrintWriter(clientRef.socket.getOutputStream());
@@ -65,7 +67,7 @@ class ClientSocketHandler implements Runnable {
                         }
                     }
                     case "/name" -> {
-                        System.out.printf("%d set name to:(%s)%n", clientSocket.hashCode(), envelope.getSenderName());
+                        logInfo(String.format("%d set name to:(%s)%n", clientSocket.hashCode(), envelope.getSenderName()));
                         server.clients.get(this.clientSocket.hashCode()).name = envelope.getSenderName();
                         PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
                         Envelope response = new Envelope();
@@ -81,13 +83,27 @@ class ClientSocketHandler implements Runnable {
             } catch (IOException e) {
                 int clientId = this.clientSocket.hashCode();
                 server.clients.remove(clientId);
-                System.out.println("client " + clientId + " disconnected.");
+                logWarning(String.format("client %d disconnected.%n", clientId));
                 return;
             } catch (Exception e) {
-                System.out.println(e.getMessage());
-                System.out.println(Arrays.toString(e.getStackTrace()));
+                logError("Unexpected error: ", e);
             }
         }
+    }
+
+    private void logError(String content, Throwable e) {
+        System.out.println(content + e);
+        log.error(content, e);
+    }
+
+    private void logWarning(String content) {
+        System.out.println(content);
+        log.warn(content);
+    }
+
+    private void logInfo(String content) {
+        System.out.print(content);
+        log.info(content);
     }
 
     private String getClientsResponseText() {
