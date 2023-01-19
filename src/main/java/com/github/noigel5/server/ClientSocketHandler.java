@@ -50,14 +50,14 @@ class ClientSocketHandler implements Runnable {
                     }
                     case "/msg" -> {
                         envelope.setSenderName(this.server.clients.get(clientSocket.hashCode()).name);
-                        logInfo(String.format("%d to %s: %s%n", clientSocket.hashCode(), envelope.getRecipientHashCode(), envelope.getText()));
+                        log.info(String.format("%d to %s: %s%n", clientSocket.hashCode(), envelope.getRecipientHashCode(), envelope.getText()));
                         PrintWriter printWriter = new PrintWriter(server.clients.get(envelope.getRecipientHashCode()).socket.getOutputStream());
                         printWriter.println(GSON.toJson(envelope));
                         printWriter.flush();
                     }
                     case "/all" -> {
                         envelope.setSenderName(this.server.clients.get(clientSocket.hashCode()).name);
-                        logInfo(String.format("%d to all: %s%n", clientSocket.hashCode(), envelope.getText()));
+                        log.info(String.format("%d to all: %s%n", clientSocket.hashCode(), envelope.getText()));
                         for (ClientRef clientRef : server.clients.values()) {
                             if (clientRef.socket.hashCode() != clientSocket.hashCode()) {
                                 PrintWriter printWriter = new PrintWriter(clientRef.socket.getOutputStream());
@@ -67,7 +67,7 @@ class ClientSocketHandler implements Runnable {
                         }
                     }
                     case "/name" -> {
-                        logInfo(String.format("%d set name to:(%s)%n", clientSocket.hashCode(), envelope.getSenderName()));
+                        log.info(String.format("%d set name to:(%s)%n", clientSocket.hashCode(), envelope.getSenderName()));
                         server.clients.get(this.clientSocket.hashCode()).name = envelope.getSenderName();
                         PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
                         Envelope response = new Envelope();
@@ -83,27 +83,12 @@ class ClientSocketHandler implements Runnable {
             } catch (IOException e) {
                 int clientId = this.clientSocket.hashCode();
                 server.clients.remove(clientId);
-                logWarning(String.format("client %d disconnected.%n", clientId));
+                log.warn(String.format("client %d disconnected.%n", clientId));
                 return;
             } catch (Exception e) {
-                logError("Unexpected error: ", e);
+                log.error("Unexpected error: ", e);
             }
         }
-    }
-
-    private void logError(String content, Throwable e) {
-        System.out.println(content + e);
-        log.error(content, e);
-    }
-
-    private void logWarning(String content) {
-        System.out.println(content);
-        log.warn(content);
-    }
-
-    private void logInfo(String content) {
-        System.out.print(content);
-        log.info(content);
     }
 
     private String getClientsResponseText() {

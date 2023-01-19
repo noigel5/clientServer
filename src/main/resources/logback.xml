@@ -13,15 +13,12 @@
         <append>false</append>
         <immediateFlush>true</immediateFlush>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n</pattern>
         </encoder>
     </appender>
 
     <root level="DEBUG">
         <appender-ref ref="logfile"/>
-    </root>
-
-    <!--<root level="error">
         <appender-ref ref="STDOUT"/>
-    </root>-->
+    </root>
 </configuration>
