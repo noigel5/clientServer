@@ -9,7 +9,7 @@
         </encoder>
     </appender>
     <appender name="logfile" class="ch.qos.logback.core.FileAppender">
-        <file>testFile.log</file>
+        <file>logFile.log</file>
         <append>false</append>
         <immediateFlush>true</immediateFlush>
         <encoder>
