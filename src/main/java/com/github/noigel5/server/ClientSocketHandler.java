@@ -1,6 +1,7 @@
 package com.github.noigel5.server;
 
 import com.github.noigel5.model.Envelope;
+import com.github.noigel5.model.LoginEnvelope;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 
@@ -70,16 +71,14 @@ class ClientSocketHandler implements Runnable {
                         }
                         case "/name" -> {
                             Path filePath = Path.of("UserData.txt");
-                            List<String> readLines = Files.readAllLines(filePath);
-
                             List<String> lines = new ArrayList<>();
+                            List<String> readLines = Files.readAllLines(filePath);
                             for (String line : readLines) {
-                                String[] split = line.split(";");
-                                if (split[0].equals(server.clients.get(clientSocket.hashCode()).name)) {
-                                    String split0 = split[0].replace(split[0], envelope.getUsername());
-                                    line = "%s;%s".formatted(split0, split[1]);
+                                LoginEnvelope loginEnvelope = GSON.fromJson(line, LoginEnvelope.class);
+                                if (loginEnvelope.getUsername().equals(server.clients.get(clientSocket.hashCode()).name)) {
+                                    loginEnvelope.setUsername(envelope.getUsername());
                                 }
-                                lines.add(line);
+                                lines.add(GSON.toJson(loginEnvelope));
                             }
                             Files.write(filePath, lines);
 
@@ -118,11 +117,14 @@ class ClientSocketHandler implements Runnable {
 
                         if (!isUserKnown(envelope.getUsername())) {
                             server.clients.get(clientSocket.hashCode()).name = envelope.getUsername();
-                            bufferedWriter.write("%s;%s".formatted(envelope.getUsername(), envelope.getPassword()));
+                            LoginEnvelope loginEnvelope = new LoginEnvelope();
+                            loginEnvelope.setUsername(envelope.getUsername());
+                            loginEnvelope.setPassword(envelope.getPassword());
+                            bufferedWriter.write(GSON.toJson(loginEnvelope));
                             bufferedWriter.newLine();
                             bufferedWriter.close();
                             envelope.setLogedIn(true);
-                            log.debug("user registered");
+                            log.debug("user %d registered".formatted(clientSocket.hashCode()));
                         } else {
                             log.debug("user already exists");
                             envelope.setText("user already exists");
@@ -153,8 +155,8 @@ class ClientSocketHandler implements Runnable {
             String line;
 
             while ((line = bufferedReader.readLine()) != null) {
-                String[] split = line.split(";");
-                if (split[0].equals(username)) {
+                LoginEnvelope loginEnvelope = GSON.fromJson(line, LoginEnvelope.class);
+                if (loginEnvelope.getUsername().equals(username)) {
                     log.debug("username found");
                     return true;
                 }
@@ -171,9 +173,9 @@ class ClientSocketHandler implements Runnable {
             String line;
 
             while ((line = bufferedReader.readLine()) != null) {
-                String[] split = line.split(";");
-                if (split[0].equals(username)) {
-                    if (split[1].equals(password)) {
+                LoginEnvelope loginEnvelope = GSON.fromJson(line, LoginEnvelope.class);
+                if (loginEnvelope.getUsername().equals(username)) {
+                    if (loginEnvelope.getPassword().equals(password)) {
                         log.debug("password right");
                         return true;
                     }

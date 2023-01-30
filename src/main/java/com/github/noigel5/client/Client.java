@@ -4,7 +4,7 @@ import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
 
-import com.github.noigel5.model.Envelope;
+import com.github.noigel5.model.*;
 import com.github.noigel5.utils.AES;
 import com.google.gson.Gson;
 
