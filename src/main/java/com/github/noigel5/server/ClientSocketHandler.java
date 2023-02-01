@@ -124,7 +124,7 @@ class ClientSocketHandler implements Runnable {
                             bufferedWriter.newLine();
                             bufferedWriter.close();
                             envelope.setLogedIn(true);
-                            log.debug("user %d registered".formatted(clientSocket.hashCode()));
+                            log.debug("user %d (%s) registered".formatted(clientSocket.hashCode(), envelope.getUsername()));
                         } else {
                             log.debug("user already exists");
                             envelope.setText("user already exists");
