@@ -36,19 +36,15 @@ class ClientSocketHandler implements Runnable {
                 envelope.setSenderHashCode(clientSocket.hashCode());
 
                 if (envelope.isLogedIn()) {
+                    final Path path = Path.of("UserData.txt");
                     switch (envelope.getCommand()) {
                         case "/clients" -> {
                             PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
 
                             // V1
-                            Envelope v1Envelope = new Envelope();
-                            v1Envelope.setCommand("/msg");
-                            v1Envelope.setSenderHashCode(0);
-                            v1Envelope.setUsername("Server");
-                            v1Envelope.setRecipientHashCode(envelope.getSenderHashCode());
-                            v1Envelope.setText(getClientsResponseText());
-                            v1Envelope.setLogedIn(true);
-                            printWriter.println(GSON.toJson(v1Envelope));
+                            Envelope response = getResponseEnvelope();
+                            response.setText(getClientsResponseText());
+                            printWriter.println(GSON.toJson(response));
                             printWriter.flush();
                         }
                         case "/msg" -> {
@@ -70,9 +66,8 @@ class ClientSocketHandler implements Runnable {
                             }
                         }
                         case "/name" -> {
-                            Path filePath = Path.of("UserData.txt");
                             List<String> lines = new ArrayList<>();
-                            List<String> readLines = Files.readAllLines(filePath);
+                            List<String> readLines = Files.readAllLines(path);
                             for (String line : readLines) {
                                 LoginEnvelope loginEnvelope = GSON.fromJson(line, LoginEnvelope.class);
                                 if (loginEnvelope.getUsername().equals(server.clients.get(clientSocket.hashCode()).name)) {
@@ -80,18 +75,34 @@ class ClientSocketHandler implements Runnable {
                                 }
                                 lines.add(GSON.toJson(loginEnvelope));
                             }
-                            Files.write(filePath, lines);
+                            Files.write(path, lines);
 
                             log.info(String.format("%d set name to:(%s)%n", clientSocket.hashCode(), envelope.getUsername()));
                             server.clients.get(this.clientSocket.hashCode()).name = envelope.getUsername();
                             PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
-                            Envelope response = new Envelope();
-                            response.setSenderHashCode(0);
-                            response.setCommand("/msg");
-                            response.setRecipientHashCode(clientSocket.hashCode());
-                            response.setUsername("Server");
+                            Envelope response = getResponseEnvelope();
                             response.setText("Name change received. You are now: " + envelope.getUsername());
-                            response.setLogedIn(true);
+
+                            printWriter.println(GSON.toJson(response));
+                            printWriter.flush();
+                        }
+                        case "/password" -> {
+                            List<String> lines = new ArrayList<>();
+                            List<String> readLines = Files.readAllLines(path);
+                            for (String line : readLines) {
+                                LoginEnvelope loginEnvelope = GSON.fromJson(line, LoginEnvelope.class);
+                                if (loginEnvelope.getUsername().equals(server.clients.get(clientSocket.hashCode()).name)) {
+                                    loginEnvelope.setPassword(envelope.getPassword());
+                                }
+                                lines.add(GSON.toJson(loginEnvelope));
+                            }
+                            Files.write(path, lines);
+
+                            log.info("password set");
+                            server.clients.get(this.clientSocket.hashCode()).name = envelope.getPassword();
+                            PrintWriter printWriter = new PrintWriter(clientSocket.getOutputStream());
+                            Envelope response = getResponseEnvelope();
+                            response.setText("Password change received and set successfully");
 
                             printWriter.println(GSON.toJson(response));
                             printWriter.flush();
@@ -124,7 +135,7 @@ class ClientSocketHandler implements Runnable {
                             bufferedWriter.newLine();
                             bufferedWriter.close();
                             envelope.setLogedIn(true);
-                            log.debug("user %d registered".formatted(clientSocket.hashCode()));
+                            log.debug("user %d (%s) registered".formatted(clientSocket.hashCode(), envelope.getUsername()));
                         } else {
                             log.debug("user already exists");
                             envelope.setText("user already exists");
@@ -145,6 +156,16 @@ class ClientSocketHandler implements Runnable {
                 log.error("Unexpected error: ", e);
             }
         }
+    }
+
+    private Envelope getResponseEnvelope() {
+        Envelope response = new Envelope();
+        response.setSenderHashCode(0);
+        response.setCommand("/msg");
+        response.setRecipientHashCode(clientSocket.hashCode());
+        response.setUsername("Server");
+        response.setLogedIn(true);
+        return response;
     }
 
     private boolean isUserKnown(String username) throws IOException {

@@ -109,6 +109,15 @@ public class Client {
                                         envelope.setCommand(split[0]);
                                         out.println(GSON.toJson(envelope));
                                     }
+                                    case "/password" -> {
+                                        if (split[1].equals(split[2])) {
+                                            envelope.setCommand(split[0]);
+                                            envelope.setPassword(AES.encrypt(split[1], password));
+                                            out.println(GSON.toJson(envelope));
+                                        } else {
+                                            System.out.println("ERROR: Passwords do not match");
+                                        }
+                                    }
                                     default -> System.out.println("ERROR: Command must be /clients, /all, /msg, /name");
                                 }
                                 out.flush();
